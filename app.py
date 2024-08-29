@@ -74,6 +74,11 @@ def export_to_docx(title, content):
 def main():
     st.title("Generador de Novelas")
     
+    if 'novel_outline' not in st.session_state:
+        st.session_state['novel_outline'] = None
+    if 'novel_content' not in st.session_state:
+        st.session_state['novel_content'] = None
+    
     title = st.text_input("Título de la novela:")
     genre = st.text_input("Género de la novela:")
     num_chapters = st.number_input("Número de capítulos (máximo 24):", min_value=1, max_value=24, value=1)
@@ -89,28 +94,30 @@ def main():
         else:
             st.warning("Por favor, introduce el título y el género de la novela.")
     
-    if 'novel_outline' in st.session_state and st.button("Generar capítulos"):
-        novel_content = st.session_state['novel_outline'] + "\n\n"
-        progress_bar = st.progress(0)
-        
-        # Extraer títulos de capítulos del esquema
-        chapter_titles = [line.split(': ', 1)[1] for line in st.session_state['novel_outline'].split('\n') if line.startswith('Capítulo')]
-        
-        for i, chapter_title in enumerate(chapter_titles, 1):
-            with st.spinner(f"Generando capítulo {i}: {chapter_title}..."):
-                chapter_content = generate_chapter(i, title, genre, st.session_state['novel_outline'], [], chapter_title)
-                if chapter_content:
-                    novel_content += f"\n\nCapítulo {i}: {chapter_title}\n\n{chapter_content}"
-                    progress_bar.progress(i / len(chapter_titles))
-                else:
-                    st.error(f"No se pudo generar el capítulo {i}: {chapter_title}")
-                time.sleep(1)  # Pausa para evitar sobrecargar la API
-        
-        st.session_state['novel_content'] = novel_content
-        st.success("¡Todos los capítulos han sido generados!")
-        
+    if st.session_state['novel_outline']:
+        if st.button("Generar capítulos"):
+            novel_content = st.session_state['novel_outline'] + "\n\n"
+            progress_bar = st.progress(0)
+            
+            # Extraer títulos de capítulos del esquema
+            chapter_titles = [line.split(': ', 1)[1] for line in st.session_state['novel_outline'].split('\n') if line.startswith('Capítulo')]
+            
+            for i, chapter_title in enumerate(chapter_titles, 1):
+                with st.spinner(f"Generando capítulo {i}: {chapter_title}..."):
+                    chapter_content = generate_chapter(i, title, genre, st.session_state['novel_outline'], [], chapter_title)
+                    if chapter_content:
+                        novel_content += f"\n\nCapítulo {i}: {chapter_title}\n\n{chapter_content}"
+                        progress_bar.progress(i / len(chapter_titles))
+                    else:
+                        st.error(f"No se pudo generar el capítulo {i}: {chapter_title}")
+                    time.sleep(1)  # Pausa para evitar sobrecargar la API
+            
+            st.session_state['novel_content'] = novel_content
+            st.success("¡Todos los capítulos han sido generados!")
+    
+    if st.session_state['novel_content']:
         # Botón para exportar a DOCX
-        docx_file = export_to_docx(title, novel_content)
+        docx_file = export_to_docx(title, st.session_state['novel_content'])
         st.download_button(
             label="Descargar novela en DOCX",
             data=docx_file,
