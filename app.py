@@ -6,7 +6,7 @@ import json
 API_KEY = st.secrets["TUNE_API_KEY"]
 API_URL = "https://proxy.tune.app/chat/completions"
 
-# Función para generar la estructura de la novela
+# Función para generar la novela
 def generar_novela(titulo, genero, num_capitulos):
     # Configuración de la solicitud a la API de Tune
     headers = {
@@ -18,7 +18,7 @@ def generar_novela(titulo, genero, num_capitulos):
         "messages": [
             {
                 "role": "system",
-                "content": f"Eres un novelista. Crea una novela con el título '{titulo}' y del género '{genero}'. La novela debe tener {num_capitulos} capítulos."
+                "content": f"Eres un novelista. Crea una novela con el título '{titulo}' y del género '{genero}'. La novela debe tener {num_capitulos} capítulos largos."
             }
         ],
         "model": "meta/llama-3.1-8b-instruct",
@@ -33,40 +33,10 @@ def generar_novela(titulo, genero, num_capitulos):
     # Procesamiento de la respuesta
     if response.status_code == 200:
         respuesta = response.json()
-        sinopsis = respuesta["choices"][0]["message"]["content"]
+        novela = respuesta["choices"][0]["message"]["content"]
 
-        # Verificar si hay más respuestas
-        if len(respuesta["choices"]) > 1:
-            trama = respuesta["choices"][1]["message"]["content"]
-            personajes = respuesta["choices"][2]["message"]["content"]
-            ambientacion = respuesta["choices"][3]["message"]["content"]
-            tecnica_narrativa = respuesta["choices"][4]["message"]["content"]
-            tabla_contenidos = respuesta["choices"][5]["message"]["content"]
-        else:
-            trama = ""
-            personajes = ""
-            ambientacion = ""
-            tecnica_narrativa = ""
-            tabla_contenidos = ""
-
-        # Presentación de la estructura de la novela
-        st.write("Sinopsis:")
-        st.write(sinopsis)
-        st.write("Trama:")
-        st.write(trama)
-        st.write("Personajes:")
-        st.write(personajes)
-        st.write("Ambientación:")
-        st.write(ambientacion)
-        st.write("Técnica narrativa:")
-        st.write(tecnica_narrativa)
-        st.write("Tabla de contenidos:")
-        st.write(tabla_contenidos)
-
-        # Botón para generar capítulos
-        if st.button("Generar Capítulos"):
-            # Lógica para generar capítulos
-            pass
+        # Presentación de la novela
+        st.write(novela)
 
         # Opción para exportar la novela a Docx
         if st.button("Exportar a Docx"):
@@ -79,8 +49,23 @@ def generar_novela(titulo, genero, num_capitulos):
 # Interfaz de usuario
 st.title("Generador de Novelas")
 titulo = st.text_input("Ingrese el título de la novela")
-genero = st.selectbox("Seleccione el género de la novela", ["Aventuras", "Ciencia Ficción", "Fantasía", "Misterio", "Romance"])
-num_capitulos = st.number_input("Ingrese el número de capítulos", min_value=1, max_value=100)
+genero = st.selectbox("Seleccione el género de la novela", [
+    "Aventuras",
+    "Ciencia Ficción",
+    "Fantasía",
+    "Misterio",
+    "Romance",
+    "Terror",
+    "Drama",
+    "Comedia",
+    "Historia",
+    "Ficción histórica",
+    "Ficción científica",
+    "Ficción de aventuras",
+    "Ficción de misterio",
+    "Ficción de terror"
+])
+num_capitulos = 12
 
 if st.button("Generar Novela"):
     generar_novela(titulo, genero, num_capitulos)
