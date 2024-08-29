@@ -12,11 +12,11 @@ headers = {
     "Content-Type": "application/json"
 }
 
-def generate_novel_element(prompt, max_tokens=500):
+def generate_novel_element(prompt, max_tokens=2000):
     data = {
         "model": "meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo",
         "messages": [{"role": "user", "content": prompt}],
-        "max_tokens": max_tokens,
+        "max_tokens": 4000,
         "temperature": 0.7,
         "top_p": 0.7,
         "top_k": 50,
@@ -31,36 +31,38 @@ def generate_novel_element(prompt, max_tokens=500):
         st.error(f"Error en la API: {response.status_code}")
         return None
 
-def generate_chapter(chapter_number, title, genre, synopsis, characters, max_tokens=2000):
-    prompt = f"""Escribe el capítulo {chapter_number} de una novela con las siguientes características:
+def generate_novel_outline(title, genre, num_chapters):
+    prompt = f"""Genera una sinopsis, trama, personajes, ambiente, técnica narrativa y tabla de contenidos para una novela titulada '{title}' del género '{genre}'. 
+    La tabla de contenidos debe incluir {num_chapters} capítulos con títulos sugerentes."""
+    return generate_novel_element(prompt, max_tokens=2000)
+
+def generate_chapter(chapter_number, title, genre, synopsis, characters, chapter_title, max_tokens=8000):
+    prompt = f"""Escribe el capítulo {chapter_number} titulado "{chapter_title}" de una novela con las siguientes características:
     Título: {title}
     Género: {genre}
     Sinopsis: {synopsis}
     Personajes principales: {', '.join(characters)}
     
-    El capítulo debe tener aproximadamente 5 páginas. Usa la raya (—) para los diálogos de los personajes.
+    El capítulo debe ser extenso, con aproximadamente 20 páginas. Usa la raya (—) para los diálogos de los personajes.
     
-    Capítulo {chapter_number}:
+    Capítulo {chapter_number}: {chapter_title}
     """
     return generate_novel_element(prompt, max_tokens)
 
-def export_to_docx(title, genre, novel_elements, chapters):
+def export_to_docx(title, content):
     doc = Document()
     doc.add_heading(title, 0)
-    doc.add_paragraph(f"Género: {genre}")
     
-    for element_title, content in novel_elements.items():
-        doc.add_heading(element_title, level=1)
-        doc.add_paragraph(content)
+    for line in content.split('\n'):
+        if line.startswith('Capítulo'):
+            doc.add_heading(line, level=1)
+        else:
+            doc.add_paragraph(line)
     
-    for i, chapter in enumerate(chapters, 1):
-        doc.add_heading(f"Capítulo {i}", level=1)
-        doc.add_paragraph(chapter)
-    
-    buffer = BytesIO()
-    doc.save(buffer)
-    buffer.seek(0)
-    return buffer
+    doc_io = BytesIO()
+    doc.save(doc_io)
+    doc_io.seek(0)
+    return doc_io
 
 def main():
     st.title("Generador de Novelas")
@@ -69,43 +71,42 @@ def main():
     genre = st.text_input("Género de la novela:")
     num_chapters = st.number_input("Número de capítulos (máximo 24):", min_value=1, max_value=24, value=1)
     
-    novel_elements = {}
-    chapters = []
-    
     if st.button("Generar esquema de la novela"):
-        with st.spinner("Generando elementos de la novela..."):
-            novel_elements['Sinopsis'] = generate_novel_element(f"Escribe una sinopsis para una novela titulada '{title}' del género {genre}.")
-            novel_elements['Trama'] = generate_novel_element(f"Describe la trama principal de una novela titulada '{title}' del género {genre}.")
-            novel_elements['Personajes'] = generate_novel_element(f"Enumera y describe brevemente los personajes principales de una novela titulada '{title}' del género {genre}.")
-            novel_elements['Ambiente'] = generate_novel_element(f"Describe el ambiente y escenario de una novela titulada '{title}' del género {genre}.")
-            novel_elements['Técnica Narrativa'] = generate_novel_element(f"Explica la técnica narrativa utilizada en una novela titulada '{title}' del género {genre}.")
-            novel_elements['Tabla de Contenidos'] = generate_novel_element(f"Crea una tabla de contenidos con {num_chapters} capítulos para una novela titulada '{title}' del género {genre}.")
-            
-            for element_title, content in novel_elements.items():
-                if content:
-                    st.subheader(element_title)
-                    st.write(content)
+        if title and genre:
+            with st.spinner("Generando esquema de la novela..."):
+                novel_outline = generate_novel_outline(title, genre, num_chapters)
+                if novel_outline:
+                    st.subheader("Esquema de la novela")
+                    st.write(novel_outline)
+                    st.session_state['novel_outline'] = novel_outline
+        else:
+            st.warning("Por favor, introduce el título y el género de la novela.")
     
-    if st.button("Generar capítulos"):
-        characters_list = novel_elements.get('Personajes', '').split(',')
-        synopsis = novel_elements.get('Sinopsis', '')
+    if 'novel_outline' in st.session_state and st.button("Generar capítulos"):
+        novel_content = st.session_state['novel_outline'] + "\n\n"
+        progress_bar = st.progress(0)
         
-        for chapter in range(1, num_chapters + 1):
-            with st.spinner(f"Generando capítulo {chapter}..."):
-                chapter_content = generate_chapter(chapter, title, genre, synopsis, characters_list)
+        # Extraer títulos de capítulos del esquema
+        chapter_titles = [line.split(': ', 1)[1] for line in novel_outline.split('\n') if line.startswith('Capítulo')]
+        
+        for i, chapter_title in enumerate(chapter_titles, 1):
+            with st.spinner(f"Generando capítulo {i}: {chapter_title}..."):
+                chapter_content = generate_chapter(i, title, genre, st.session_state['novel_outline'], [], chapter_title)
                 if chapter_content:
-                    chapters.append(chapter_content)
-                    st.subheader(f"Capítulo {chapter}")
-                    st.write(chapter_content)
+                    novel_content += f"\n\nCapítulo {i}: {chapter_title}\n\n{chapter_content}"
+                    progress_bar.progress(i / len(chapter_titles))
                 time.sleep(1)  # Pausa para evitar sobrecargar la API
         
+        st.session_state['novel_content'] = novel_content
         st.success("¡Todos los capítulos han sido generados!")
-    
-    if novel_elements and chapters:
-        docx_buffer = export_to_docx(title, genre, novel_elements, chapters)
+        st.write("Novela generada:")
+        st.text_area("Contenido de la novela:", novel_content, height=500)
+        
+        # Botón para exportar a DOCX
+        docx_file = export_to_docx(title, novel_content)
         st.download_button(
-            label="Descargar novela en DOCX",
-            data=docx_buffer,
+            label="Descargar DOCX",
+            data=docx_file,
             file_name=f"{title}.docx",
             mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
         )
