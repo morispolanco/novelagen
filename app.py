@@ -91,8 +91,20 @@ def main():
 
             chapter_titles = [line.split(': ', 1)[1] for line in st.session_state['novel_outline'].split('\n') if line.startswith('Capítulo')]
             st.session_state['novel_chapters'] = []
-            synopsis = st.session_state['novel_outline'].split('Sinopsis:')[1].split('Trama:')[0].strip()
-            characters = st.session_state['novel_outline'].split('Personajes:')[1].split('Ambiente:')[0].strip().split(', ')
+
+            # Ensure synopsis and characters sections exist
+            synopsis = ""
+            characters = []
+
+            if 'Sinopsis:' in st.session_state['novel_outline'] and 'Trama:' in st.session_state['novel_outline']:
+                synopsis = st.session_state['novel_outline'].split('Sinopsis:')[1].split('Trama:')[0].strip()
+            else:
+                st.error("No se encontró la sección de Sinopsis en la estructura de la novela generada")
+
+            if 'Personajes:' in st.session_state['novel_outline'] and 'Ambiente:' in st.session_state['novel_outline']:
+                characters = st.session_state['novel_outline'].split('Personajes:')[1].split('Ambiente:')[0].strip().split(', ')
+            else:
+                st.error("No se encontró la sección de Personajes en la estructura de la novela generada")
 
             for i, chapter_title in enumerate(chapter_titles, 1):
                 with st.spinner(f"Generando capítulo {i}: {chapter_title}..."):
