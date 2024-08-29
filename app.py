@@ -18,7 +18,7 @@ def generar_novela(titulo, genero, num_capitulos):
         "messages": [
             {
                 "role": "system",
-                "content": f"Eres un novelista. Crea una novela con el título '{titulo}' y del género '{genero}'. La novela debe tener {num_capitulos} capítulos."
+                "content": f"Eres un novelista. Crea una novela con el título '{titulo}' y del género '{genero}'. La novela debe tener {num_capitulos} capítulos." 
             }
         ],
         "model": "meta/llama-3.1-8b-instruct",
