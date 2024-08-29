@@ -2,8 +2,6 @@ import streamlit as st
 import requests
 import time
 import logging
-from docx import Document
-from io import BytesIO
 
 # Configuración de logging
 logging.basicConfig(level=logging.INFO)
@@ -56,28 +54,13 @@ def generate_chapter(chapter_number, title, genre, synopsis, characters, chapter
     """
     return generate_novel_element(prompt, max_tokens)
 
-def export_to_docx(title, content):
-    doc = Document()
-    doc.add_heading(title, 0)
-    
-    for line in content.split('\n'):
-        if line.startswith('Capítulo'):
-            doc.add_heading(line, level=1)
-        else:
-            doc.add_paragraph(line)
-    
-    doc_io = BytesIO()
-    doc.save(doc_io)
-    doc_io.seek(0)
-    return doc_io
-
 def main():
     st.title("Generador de Novelas")
     
     if 'novel_outline' not in st.session_state:
         st.session_state['novel_outline'] = None
-    if 'novel_content' not in st.session_state:
-        st.session_state['novel_content'] = None
+    if 'novel_chapters' not in st.session_state:
+        st.session_state['novel_chapters'] = []
     
     title = st.text_input("Título de la novela:")
     genre = st.text_input("Género de la novela:")
@@ -96,34 +79,31 @@ def main():
     
     if st.session_state['novel_outline']:
         if st.button("Generar capítulos"):
-            novel_content = st.session_state['novel_outline'] + "\n\n"
             progress_bar = st.progress(0)
             
             # Extraer títulos de capítulos del esquema
             chapter_titles = [line.split(': ', 1)[1] for line in st.session_state['novel_outline'].split('\n') if line.startswith('Capítulo')]
             
+            st.session_state['novel_chapters'] = []
+            
             for i, chapter_title in enumerate(chapter_titles, 1):
                 with st.spinner(f"Generando capítulo {i}: {chapter_title}..."):
                     chapter_content = generate_chapter(i, title, genre, st.session_state['novel_outline'], [], chapter_title)
                     if chapter_content:
-                        novel_content += f"\n\nCapítulo {i}: {chapter_title}\n\n{chapter_content}"
+                        st.session_state['novel_chapters'].append((chapter_title, chapter_content))
                         progress_bar.progress(i / len(chapter_titles))
                     else:
                         st.error(f"No se pudo generar el capítulo {i}: {chapter_title}")
                     time.sleep(1)  # Pausa para evitar sobrecargar la API
             
-            st.session_state['novel_content'] = novel_content
             st.success("¡Todos los capítulos han sido generados!")
     
-    if st.session_state['novel_content']:
-        # Botón para exportar a DOCX
-        docx_file = export_to_docx(title, st.session_state['novel_content'])
-        st.download_button(
-            label="Descargar novela en DOCX",
-            data=docx_file,
-            file_name=f"{title}.docx",
-            mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-        )
+    # Mostrar los capítulos generados
+    if st.session_state['novel_chapters']:
+        st.subheader("Capítulos de la novela")
+        for i, (chapter_title, chapter_content) in enumerate(st.session_state['novel_chapters'], 1):
+            with st.expander(f"Capítulo {i}: {chapter_title}"):
+                st.write(chapter_content)
 
 if __name__ == "__main__":
     main()
