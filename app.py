@@ -18,7 +18,7 @@ def generar_novela(titulo, genero, num_capitulos):
         "messages": [
             {
                 "role": "system",
-                "content": f"Eres un novelista. Crea una novela con el título '{titulo}' y del género '{genero}'. La novela debe tener {num_capitulos} capítulos." 
+                "content": f"Eres un novelista. Crea una novela con el título '{titulo}' y del género '{genero}'. La novela debe tener {num_capitulos} capítulos."
             }
         ],
         "model": "meta/llama-3.1-8b-instruct",
@@ -34,11 +34,20 @@ def generar_novela(titulo, genero, num_capitulos):
     if response.status_code == 200:
         respuesta = response.json()
         sinopsis = respuesta["choices"][0]["message"]["content"]
-        trama = respuesta["choices"][1]["message"]["content"]
-        personajes = respuesta["choices"][2]["message"]["content"]
-        ambientacion = respuesta["choices"][3]["message"]["content"]
-        tecnica_narrativa = respuesta["choices"][4]["message"]["content"]
-        tabla_contenidos = respuesta["choices"][5]["message"]["content"]
+
+        # Verificar si hay más respuestas
+        if len(respuesta["choices"]) > 1:
+            trama = respuesta["choices"][1]["message"]["content"]
+            personajes = respuesta["choices"][2]["message"]["content"]
+            ambientacion = respuesta["choices"][3]["message"]["content"]
+            tecnica_narrativa = respuesta["choices"][4]["message"]["content"]
+            tabla_contenidos = respuesta["choices"][5]["message"]["content"]
+        else:
+            trama = ""
+            personajes = ""
+            ambientacion = ""
+            tecnica_narrativa = ""
+            tabla_contenidos = ""
 
         # Presentación de la estructura de la novela
         st.write("Sinopsis:")
