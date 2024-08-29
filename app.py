@@ -16,7 +16,7 @@ def generate_novel_element(prompt, max_tokens=2000):
     data = {
         "model": "meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo",
         "messages": [{"role": "user", "content": prompt}],
-        "max_tokens": 4000,
+        "max_tokens": max_tokens,
         "temperature": 0.7,
         "top_p": 0.7,
         "top_k": 50,
