@@ -89,20 +89,31 @@ def main():
         if st.button("Generar capítulos"):
             progress_bar = st.progress(0)
 
+            # Debug output to verify the content and format of the novel outline
+            st.text("Debug: Contenido de novel_outline:")
+            st.text(st.session_state['novel_outline'])
+
             chapter_titles = [line.split(': ', 1)[1] for line in st.session_state['novel_outline'].split('\n') if line.startswith('Capítulo')]
             st.session_state['novel_chapters'] = []
 
-            # Ensure synopsis and characters sections exist
             synopsis = ""
             characters = []
 
-            if 'Sinopsis:' in st.session_state['novel_outline'] and 'Trama:' in st.session_state['novel_outline']:
-                synopsis = st.session_state['novel_outline'].split('Sinopsis:')[1].split('Trama:')[0].strip()
+            outline = st.session_state['novel_outline']
+
+            if 'Sinopsis:' in outline and 'Trama:' in outline:
+                try:
+                    synopsis = outline.split('Sinopsis:')[1].split('Trama:')[0].strip()
+                except IndexError:
+                    st.error("Formato inesperado en la sección de Sinopsis.")
             else:
                 st.error("No se encontró la sección de Sinopsis en la estructura de la novela generada")
 
-            if 'Personajes:' in st.session_state['novel_outline'] and 'Ambiente:' in st.session_state['novel_outline']:
-                characters = st.session_state['novel_outline'].split('Personajes:')[1].split('Ambiente:')[0].strip().split(', ')
+            if 'Personajes:' in outline and 'Ambiente:' in outline:
+                try:
+                    characters = outline.split('Personajes:')[1].split('Ambiente:')[0].strip().split(', ')
+                except IndexError:
+                    st.error("Formato inesperado en la sección de Personajes.")
             else:
                 st.error("No se encontró la sección de Personajes en la estructura de la novela generada")
 
