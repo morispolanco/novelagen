@@ -6,8 +6,8 @@ import json
 API_KEY = st.secrets["TUNE_API_KEY"]
 API_URL = "https://proxy.tune.app/chat/completions"
 
-# Función para generar la novela
-def generar_novela(titulo, genero, num_capitulos):
+# Función para generar el cuento
+def generar_cuento(titulo, autor, genero):
     # Configuración de la solicitud a la API de Tune
     headers = {
         "Authorization": f"Bearer {API_KEY}",
@@ -18,7 +18,7 @@ def generar_novela(titulo, genero, num_capitulos):
         "messages": [
             {
                 "role": "system",
-                "content": f"Eres un novelista. Crea una novela con el título '{titulo}' y del género '{genero}'. La novela debe tener {num_capitulos} capítulos largos y detallados, con diálogos entre los personajes utilizando raya."
+                "content": f"Eres un escritor latinoamericano. Crea un cuento largo en el estilo de {autor} con el título '{titulo}' y del género '{genero}'."
             }
         ],
         "model": "meta/llama-3.1-8b-instruct",
@@ -33,23 +33,30 @@ def generar_novela(titulo, genero, num_capitulos):
     # Procesamiento de la respuesta
     if response.status_code == 200:
         respuesta = response.json()
-        novela = respuesta["choices"][0]["message"]["content"]
+        cuento = respuesta["choices"][0]["message"]["content"]
 
-        # Presentación de la novela
-        st.write(novela)
+        # Presentación del cuento
+        st.write(cuento)
 
-        # Opción para exportar la novela a Docx
+        # Opción para exportar el cuento a Docx
         if st.button("Exportar a Docx"):
-            # Lógica para exportar la novela a Docx
+            # Lógica para exportar el cuento a Docx
             pass
 
     else:
-        st.error("Error al generar la novela")
+        st.error("Error al generar el cuento")
 
 # Interfaz de usuario
-st.title("Generador de Novelas")
-titulo = st.text_input("Ingrese el título de la novela")
-genero = st.selectbox("Seleccione el género de la novela", [
+st.title("Generador de Cuentos")
+titulo = st.text_input("Ingrese el título del cuento")
+autor = st.selectbox("Seleccione el autor latinoamericano que imitará el estilo del cuento", [
+    "Gabriel García Márquez",
+    "Isabel Allende",
+    "Mario Vargas Llosa",
+    "Julio Cortázar",
+    "Jorge Luis Borges"
+])
+genero = st.selectbox("Seleccione el género del cuento", [
     "Aventuras",
     "Ciencia Ficción",
     "Fantasía",
@@ -63,10 +70,8 @@ genero = st.selectbox("Seleccione el género de la novela", [
     "Ficción científica",
     "Ficción de aventuras",
     "Ficción de misterio",
-    "Ficción de terror",
-    "Narcotráfico"
+    "Ficción de terror"
 ])
-num_capitulos = 12
 
-if st.button("Generar Novela"):
-    generar_novela(titulo, genero, num_capitulos)
+if st.button("Generar Cuento"):
+    generar_cuento(titulo, autor, genero)
