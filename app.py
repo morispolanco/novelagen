@@ -1,28 +1,30 @@
 import streamlit as st
 import requests
-import time
+import json
 import logging
+import time
 
 # Configuración de logging
 logging.basicConfig(level=logging.INFO)
 
-# Configuración de la API de Together
-API_URL = "https://api.together.xyz/v1/chat/completions"
+# Configuración de la API de Tune
+API_URL = "https://proxy.tune.app/chat/completions"
 headers = {
-    "Authorization": f"Bearer {st.secrets['TOGETHER_API_KEY']}",
+    "Authorization": f"Bearer {st.secrets['TUNE_API_KEY']}",
     "Content-Type": "application/json"
 }
 
-def generate_novel_element(prompt, max_tokens=2000):
+def generate_novel_element(prompt, max_tokens=3898):
     data = {
-        "model": "meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo",
-        "messages": [{"role": "user", "content": prompt}],
+        "model": "meta/llama-3.1-8b-instruct",
+        "messages": [
+            {"role": "system", "content": "Eres un novelista"},
+            {"role": "user", "content": prompt}
+        ],
         "max_tokens": max_tokens,
-        "temperature": 0.7,
-        "top_p": 0.7,
-        "top_k": 50,
-        "repetition_penalty": 1,
-        "stop": ["<|eot_id|>", "<|eom_id|>"]
+        "temperature": 0.8,
+        "frequency_penalty": 1.04,
+        "stream": False
     }
     
     try:
@@ -39,20 +41,20 @@ def generate_novel_element(prompt, max_tokens=2000):
 def generate_novel_outline(title, genre, num_chapters):
     prompt = f"""Genera una sinopsis, trama, personajes, ambiente, técnica narrativa y tabla de contenidos para una novela titulada '{title}' del género '{genre}'. 
     La tabla de contenidos debe incluir {num_chapters} capítulos con títulos sugerentes."""
-    return generate_novel_element(prompt, max_tokens=2000)
+    return generate_novel_element(prompt)
 
-def generate_chapter(chapter_number, title, genre, synopsis, characters, chapter_title, max_tokens=8000):
+def generate_chapter(chapter_number, title, genre, synopsis, characters, chapter_title):
     prompt = f"""Escribe el capítulo {chapter_number} titulado "{chapter_title}" de una novela con las siguientes características:
     Título: {title}
     Género: {genre}
     Sinopsis: {synopsis}
     Personajes principales: {', '.join(characters)}
     
-    El capítulo debe ser extenso, con aproximadamente 20 páginas. Usa la raya (—) para los diálogos de los personajes.
+    El capítulo debe ser extenso y detallado. Usa la raya (—) para los diálogos de los personajes.
     
     Capítulo {chapter_number}: {chapter_title}
     """
-    return generate_novel_element(prompt, max_tokens)
+    return generate_novel_element(prompt)
 
 def main():
     st.title("Generador de Novelas")
