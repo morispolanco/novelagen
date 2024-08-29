@@ -1,150 +1,77 @@
 import streamlit as st
 import requests
 import json
-import time
-from docx import Document
-from io import BytesIO
 
 # Configuración de la API de Tune
+API_KEY = st.secrets["TUNE_API_KEY"]
 API_URL = "https://proxy.tune.app/chat/completions"
-headers = {
-    "Authorization": f"Bearer {st.secrets['TUNE_API_KEY']}",
-    "Content-Type": "application/json"
-}
 
-def generate_novel_element(prompt, max_tokens=3898):
+# Función para generar la estructura de la novela
+def generar_novela(titulo, genero, num_capitulos):
+    # Configuración de la solicitud a la API de Tune
+    headers = {
+        "Authorization": f"Bearer {API_KEY}",
+        "Content-Type": "application/json"
+    }
     data = {
-        "model": "meta/llama-3.1-8b-instruct",
-        "messages": [
-            {"role": "system", "content": "Eres un novelista experto"},
-            {"role": "user", "content": prompt}
-        ],
-        "max_tokens": max_tokens,
         "temperature": 0.8,
+        "messages": [
+            {
+                "role": "system",
+                "content": f"Eres un novelista. Crea una novela con el título '{titulo}' y del género '{genero}'. La novela debe tener {num_capitulos} capítulos."
+            }
+        ],
+        "model": "meta/llama-3.1-8b-instruct",
+        "stream": False,
         "frequency_penalty": 1.04,
-        "stream": False
+        "max_tokens": 3898
     }
 
-    try:
-        response = requests.post(API_URL, headers=headers, json=data)
-        response.raise_for_status()
-        return response.json()['choices'][0]['message']['content']
-    except requests.exceptions.RequestException as e:
-        st.error(f"Error en la API: {str(e)}")
-        return None
+    # Envío de la solicitud a la API de Tune
+    response = requests.post(API_URL, headers=headers, data=json.dumps(data))
 
-def generate_novel_outline(title, genre, num_chapters):
-    prompt = f"Genera una sinopsis, trama, personajes, ambiente, técnica narrativa y tabla de contenidos para una novela titulada '{title}' del género '{genre}'. La tabla de contenidos debe incluir {num_chapters} capítulos con títulos sugerentes."
-    return generate_novel_element(prompt)
+    # Procesamiento de la respuesta
+    if response.status_code == 200:
+        respuesta = response.json()
+        sinopsis = respuesta["choices"][0]["message"]["content"]
+        trama = respuesta["choices"][1]["message"]["content"]
+        personajes = respuesta["choices"][2]["message"]["content"]
+        ambientacion = respuesta["choices"][3]["message"]["content"]
+        tecnica_narrativa = respuesta["choices"][4]["message"]["content"]
+        tabla_contenidos = respuesta["choices"][5]["message"]["content"]
 
-def generate_chapter(chapter_number, title, genre, synopsis, characters, chapter_title):
-    prompt = (f"Escribe el capítulo {chapter_number} titulado '{chapter_title}' de una novela con las siguientes características:\n"
-              f"Título: {title}\n"
-              f"Género: {genre}\n"
-              f"Sinopsis: {synopsis}\n"
-              f"Personajes principales: {', '.join(characters)}\n\n"
-              f"El capítulo debe ser extenso y detallado. Usa la raya (—) para los diálogos de los personajes.\n\n"
-              f"Capítulo {chapter_number}: {chapter_title}\n")
-    return generate_novel_element(prompt)
+        # Presentación de la estructura de la novela
+        st.write("Sinopsis:")
+        st.write(sinopsis)
+        st.write("Trama:")
+        st.write(trama)
+        st.write("Personajes:")
+        st.write(personajes)
+        st.write("Ambientación:")
+        st.write(ambientacion)
+        st.write("Técnica narrativa:")
+        st.write(tecnica_narrativa)
+        st.write("Tabla de contenidos:")
+        st.write(tabla_contenidos)
 
-def export_to_docx(title, content):
-    doc = Document()
-    doc.add_heading(title, 0)
+        # Botón para generar capítulos
+        if st.button("Generar Capítulos"):
+            # Lógica para generar capítulos
+            pass
 
-    for line in content.split('\n'):
-        if line.startswith('Capítulo'):
-            doc.add_heading(line, level=1)
-        else:
-            doc.add_paragraph(line)
+        # Opción para exportar la novela a Docx
+        if st.button("Exportar a Docx"):
+            # Lógica para exportar la novela a Docx
+            pass
 
-    doc_io = BytesIO()
-    doc.save(doc_io)
-    doc_io.seek(0)
-    return doc_io
+    else:
+        st.error("Error al generar la novela")
 
-def main():
-    st.title("Generador de Novelas")
+# Interfaz de usuario
+st.title("Generador de Novelas")
+titulo = st.text_input("Ingrese el título de la novela")
+genero = st.selectbox("Seleccione el género de la novela", ["Aventuras", "Ciencia Ficción", "Fantasía", "Misterio", "Romance"])
+num_capitulos = st.number_input("Ingrese el número de capítulos", min_value=1, max_value=100)
 
-    if 'novel_outline' not in st.session_state:
-        st.session_state['novel_outline'] = None
-    if 'novel_chapters' not in st.session_state:
-        st.session_state['novel_chapters'] = []
-
-    title = st.text_input("Título de la novela:")
-    genre = st.text_input("Género de la novela:")
-    num_chapters = st.number_input("Número de capítulos (máximo 24):", min_value=1, max_value=24, value=1)
-
-    if st.button("Generar estructura de la novela"):
-        if title and genre:
-            with st.spinner("Generando estructura de la novela..."):
-                novel_outline = generate_novel_outline(title, genre, num_chapters)
-                if novel_outline:
-                    st.subheader("Estructura de la novela")
-                    st.write(novel_outline)
-                    st.session_state['novel_outline'] = novel_outline
-        else:
-            st.warning("Por favor, introduce el título y el género de la novela.")
-
-    if st.session_state['novel_outline']:
-        if st.button("Generar capítulos"):
-            progress_bar = st.progress(0)
-
-            # Debug output to verify the content and format of the novel outline
-            st.text("Debug: Contenido de novel_outline:")
-            st.text(st.session_state['novel_outline'])
-
-            chapter_titles = [line.split(': ', 1)[1] for line in st.session_state['novel_outline'].split('\n') if line.startswith('Capítulo')]
-            st.session_state['novel_chapters'] = []
-
-            synopsis = ""
-            characters = []
-
-            outline = st.session_state['novel_outline']
-
-            if 'Sinopsis:' in outline and 'Trama:' in outline:
-                try:
-                    synopsis = outline.split('Sinopsis:')[1].split('Trama:')[0].strip()
-                except IndexError:
-                    st.error("Formato inesperado en la sección de Sinopsis.")
-            else:
-                st.error("No se encontró la sección de Sinopsis en la estructura de la novela generada")
-
-            if 'Personajes:' in outline and 'Ambiente:' in outline:
-                try:
-                    characters = outline.split('Personajes:')[1].split('Ambiente:')[0].strip().split(', ')
-                except IndexError:
-                    st.error("Formato inesperado en la sección de Personajes.")
-            else:
-                st.error("No se encontró la sección de Personajes en la estructura de la novela generada")
-
-            for i, chapter_title in enumerate(chapter_titles, 1):
-                with st.spinner(f"Generando capítulo {i}: {chapter_title}..."):
-                    chapter_content = generate_chapter(i, title, genre, synopsis, characters, chapter_title)
-                    if chapter_content:
-                        st.session_state['novel_chapters'].append((chapter_title, chapter_content))
-                        progress_bar.progress(i / len(chapter_titles))
-                    else:
-                        st.error(f"No se pudo generar el capítulo {i}: {chapter_title}")
-                    time.sleep(1)
-
-            st.success("¡Todos los capítulos han sido generados!")
-
-    if st.session_state['novel_chapters']:
-        st.subheader("Capítulos de la novela")
-        full_novel_content = st.session_state['novel_outline'] + "\n\n"
-        for i, (chapter_title, chapter_content) in enumerate(st.session_state['novel_chapters'], 1):
-            with st.expander(f"Capítulo {i}: {chapter_title}"):
-                st.write(chapter_content)
-            full_novel_content += f"\n\nCapítulo {i}: {chapter_title}\n\n{chapter_content}"
-
-        if st.button("Exportar a DOCX"):
-            docx_file = export_to_docx(title, full_novel_content)
-            st.download_button(
-                label="Descargar DOCX",
-                data=docx_file,
-                file_name=f"{title}.docx",
-                mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-            )
-
-if __name__ == "__main__":
-    main()
+if st.button("Generar Novela"):
+    generar_novela(titulo, genero, num_capitulos)
