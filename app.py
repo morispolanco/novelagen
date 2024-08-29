@@ -1,8 +1,12 @@
 import streamlit as st
 import requests
 import time
+import logging
 from docx import Document
 from io import BytesIO
+
+# Configuración de logging
+logging.basicConfig(level=logging.INFO)
 
 # Configuración de la API de Together
 API_URL = "https://api.together.xyz/v1/chat/completions"
@@ -23,11 +27,15 @@ def generate_novel_element(prompt, max_tokens=2000):
         "stop": ["<|eot_id|>", "<|eom_id|>"]
     }
     
-    response = requests.post(API_URL, headers=headers, json=data)
-    if response.status_code == 200:
-        return response.json()['choices'][0]['message']['content']
-    else:
-        st.error(f"Error en la API: {response.status_code}")
+    try:
+        response = requests.post(API_URL, headers=headers, json=data)
+        response.raise_for_status()
+        content = response.json()['choices'][0]['message']['content']
+        logging.info(f"API response: {content[:100]}...")  # Log primeros 100 caracteres
+        return content
+    except requests.exceptions.RequestException as e:
+        st.error(f"Error en la API: {str(e)}")
+        logging.error(f"API error: {str(e)}")
         return None
 
 def generate_novel_outline(title, genre, num_chapters):
@@ -94,6 +102,8 @@ def main():
                 if chapter_content:
                     novel_content += f"\n\nCapítulo {i}: {chapter_title}\n\n{chapter_content}"
                     progress_bar.progress(i / len(chapter_titles))
+                else:
+                    st.error(f"No se pudo generar el capítulo {i}: {chapter_title}")
                 time.sleep(1)  # Pausa para evitar sobrecargar la API
         
         st.session_state['novel_content'] = novel_content
