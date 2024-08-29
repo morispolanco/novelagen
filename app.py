@@ -18,13 +18,13 @@ def generar_novela(titulo, genero, num_capitulos):
         "messages": [
             {
                 "role": "system",
-                "content": f"Eres un novelista. Crea una novela con el título '{titulo}' y del género '{genero}'. La novela debe tener {num_capitulos} capítulos largos."
+                "content": f"Eres un novelista. Crea una novela con el título '{titulo}' y del género '{genero}'. La novela debe tener {num_capitulos} capítulos largos y detallados, con diálogos entre los personajes utilizando raya."
             }
         ],
         "model": "meta/llama-3.1-8b-instruct",
         "stream": False,
         "frequency_penalty": 1.04,
-        "max_tokens": 3898
+        "max_tokens": 10000
     }
 
     # Envío de la solicitud a la API de Tune
@@ -63,7 +63,8 @@ genero = st.selectbox("Seleccione el género de la novela", [
     "Ficción científica",
     "Ficción de aventuras",
     "Ficción de misterio",
-    "Ficción de terror"
+    "Ficción de terror",
+    "Narcotráfico"
 ])
 num_capitulos = 12
 
